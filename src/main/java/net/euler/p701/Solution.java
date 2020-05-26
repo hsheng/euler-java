@@ -1,19 +1,24 @@
 package net.euler.p701;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.math.BigInteger;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class Solution {
 
-	public static final String FILENAME = "euler_p701_numbers.json";
+	public static final String FILENAME_1 = "countsByNum.txt";
+	public static final String FILENAME_2 = "twopalCountByNum.txt";
+	public static final String FILENAME_3 = "euler.p701.log";
 	
 	public static final BigInteger TWO = new BigInteger("2");
 	public static final BigInteger THREE = new BigInteger("3");
@@ -117,7 +122,7 @@ public class Solution {
 		if ((n & 0x1) == 1) {
 			// n is ODD number
 			Counts thisCounts_1 = getCounts(baseNum - 1);
-			Counts thisCounts_0 = getCounts(baseNum);
+//			Counts thisCounts_0 = getCounts(baseNum);
 			thisTwopalCount = prevTwopalCount
 					.add(thisCounts_1.totalCount.negate())
 					.add(thisCounts_1.hasTwoCount);
@@ -141,65 +146,115 @@ public class Solution {
 		System.out.println("hasTwo: " + counts.hasTwoCount.toString());
 	}
 	
-	public void saveCalculation() throws Exception {
-		ObjectNode oNode = mapper.createObjectNode();
-		ObjectNode oNode1 = oNode.putObject("countsByNum");
-		for (Map.Entry<Integer, Counts> entry : countsByNum.entrySet()) {
-			Integer key = entry.getKey();
-			Counts value = entry.getValue();
-			ObjectNode vNode = oNode1.putObject(key.toString());
-			vNode.put("totalCount", value.totalCount.toString());
-			vNode.put("hasTwoCount", value.hasTwoCount.toString());
+	private void saveCountsByNum() throws Exception {
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILENAME_1))) {
+			for (Map.Entry<Integer, Counts> entry : countsByNum.entrySet()) {
+				Integer key = entry.getKey();
+				Counts counts = entry.getValue();
+				writer.write(key.toString());
+				writer.newLine();
+				writer.write(counts.totalCount.toString());
+				writer.newLine();
+				writer.write(counts.hasTwoCount.toString());
+				writer.newLine();
+			}
 		}
-
-		ObjectNode oNode2 = oNode.putObject("twopalCountByNum");
-		for (Map.Entry<Integer, BigInteger> entry : twopalCountByNum.entrySet()) {
-			Integer key = entry.getKey();
-			BigInteger value = entry.getValue();
-			oNode2.put(key.toString(), value.toString());
-		}
-		
-		mapper.writeValue(new File(FILENAME), oNode);
 	}
 
-	public void initCalculation() throws Exception {
-		File f = new File(FILENAME);
-		if (f.exists() && f.canRead()) {
-			ObjectNode rootNode = (ObjectNode) mapper.readTree(f);
-			if (rootNode != null) {
-				{
-					Map<Integer, Counts> savedCountsByNum = new HashMap<Integer, Solution.Counts>();
-					Iterator<Map.Entry<String, JsonNode>> fields = rootNode.get("countsByNum").fields();
-					while (fields.hasNext()) {
-						Map.Entry<String, JsonNode> entry = fields.next();
-						Integer key = new Integer(entry.getKey());
-						ObjectNode vNode = (ObjectNode)entry.getValue();
-						BigInteger totalCount = new BigInteger(vNode.get("totalCount").asText());
-						BigInteger twopalCount = new BigInteger(vNode.get("hasTwoCount").asText());
-						savedCountsByNum.put(key, new Counts(totalCount, twopalCount));
-					}
-					this.countsByNum = savedCountsByNum;
-				}
-
-				{
-					Map<Integer, BigInteger> savedTwopalCountByNum = new HashMap<Integer, BigInteger>();
-					Iterator<Map.Entry<String, JsonNode>> fields = rootNode.get("twopalCountByNum").fields();
-					while (fields.hasNext()) {
-						Map.Entry<String, JsonNode> entry = fields.next();
-						Integer key = new Integer(entry.getKey());
-						BigInteger value = new BigInteger(entry.getValue().asText());
-						savedTwopalCountByNum.put(key, value);
-					}
-					this.twopalCountByNum = savedTwopalCountByNum;
-				}			
+	private void saveTwopalCount() throws Exception {
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILENAME_2))) {
+			for (Map.Entry<Integer, BigInteger> entry : twopalCountByNum.entrySet()) {
+				Integer key = entry.getKey();
+				BigInteger count = entry.getValue();
+				writer.write(key.toString());
+				writer.newLine();
+				writer.write(count.toString());
+				writer.newLine();
 			}
 		}
 	}
 	
+	public void saveCalculation() throws Exception {
+		saveCountsByNum();
+		saveTwopalCount();
+	}
+
+	private Map<Integer, Counts> readCountsByNum(File f) throws Exception {
+		Map<Integer, Counts> m = new HashMap<Integer, Solution.Counts>();
+		try (BufferedReader reader = new BufferedReader(new FileReader(f))) {
+			String sKey = reader.readLine();
+			String sTotalCount = reader.readLine();
+			String sHasTwoCount = reader.readLine();
+			while (StringUtils.isNotBlank(sKey) && StringUtils.isNotBlank(sTotalCount) && StringUtils.isNotBlank(sHasTwoCount)) {
+				Integer key = new Integer(sKey);
+				Counts count = new Counts(new BigInteger(sTotalCount), new BigInteger(sHasTwoCount));
+				m.put(key, count);
+
+				sKey = reader.readLine();
+				sTotalCount = reader.readLine();
+				sHasTwoCount = reader.readLine();
+			} 
+		}
+		return m;
+	}
+
+	private Map<Integer, BigInteger> readTwopalCountByNum(File f) throws Exception {
+		Map<Integer, BigInteger> m = new HashMap<Integer, BigInteger>();
+		try (BufferedReader reader = new BufferedReader(new FileReader(f))) {
+			String sKey = reader.readLine();
+			String sCount = reader.readLine();
+			while (StringUtils.isNotBlank(sKey) && StringUtils.isNotBlank(sCount)) {
+				Integer key = new Integer(sKey);
+				BigInteger count = new BigInteger(sCount);
+				m.put(key, count);
+				
+				sKey = reader.readLine();
+				sCount = reader.readLine();
+			}
+		}
+		return m;
+	}
+	
+	public void readCalculation() throws Exception {
+		File f1 = new File(FILENAME_1);
+		File f2 = new File(FILENAME_2);
+		if (f1.exists() && f2.exists() && f1.canRead() && f2.canRead()) {
+			Map<Integer, Counts> m1 = readCountsByNum(f1);
+			Map<Integer, BigInteger> m2 = readTwopalCountByNum(f2);
+			this.countsByNum = m1;
+			this.twopalCountByNum = m2;
+		}
+	}
+	
+	private static String print(int n, BigInteger count) {
+		String str = count.toString();
+		int strLen = str.length();
+		str = str.substring(strLen - 6);
+		System.out.printf("%d - %s, %d\n", n, str, strLen);
+
+		try {
+			if ((n & 0xFFF) == 0) {
+				try (BufferedWriter logger = new BufferedWriter(new FileWriter(FILENAME_3))) {
+					logger.write(String.format("%d - %s", n, str));
+					logger.newLine();
+				}
+			} else {
+				try (BufferedWriter logger = new BufferedWriter(new FileWriter(FILENAME_3, true))) {
+					logger.write(String.format("%d - %s", n, str));
+					logger.newLine();
+				}
+			}
+		} catch (Exception ex) {
+			// ignore
+		}
+		
+		return str;
+	}
+	
 	public static void main(String[] args) throws Exception {
 		final Solution s = new Solution();
-		s.initCalculation();
-		
+		s.readCalculation();
+
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
 	            try {
@@ -212,27 +267,22 @@ public class Solution {
 
 		Pair<Integer> range = s.getKeyRange(s.twopalCountByNum);
 		int n = range.i2;
-		
-		long t1 = System.currentTimeMillis();
+
 		while (true) {
 			BigInteger twopals = s.getTwopalCount(n);
-			System.out.printf("* %d - %s\n", n, twopals.toString());
-			
-			if (n % 10000 == 0) {
-				long t2 = System.currentTimeMillis();
-				System.out.printf("== %d - %d sec\n", n, (t2 - t1) / 1000);
+			String str = print(n, twopals);
+
+			if ((n & 0x0FFF) == 0) {
 				s.saveCalculation();
-				t1 = System.currentTimeMillis();
 			}
-			
-			BigInteger reminder = twopals.mod(ONE_MILLION);
-			if (reminder.intValue() == 0) {
+
+			if ("000000".equals(str)) {
 				break;
 			} else {
 				n++;
 			}
 		}
-		
+
 		System.out.printf("=== DONE (n=%d) ===\n", n);
 	}
 }
