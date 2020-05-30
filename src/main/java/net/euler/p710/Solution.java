@@ -1,4 +1,4 @@
-package net.euler.p701;
+package net.euler.p710;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
