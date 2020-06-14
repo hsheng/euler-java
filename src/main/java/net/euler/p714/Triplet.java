@@ -1,37 +1,23 @@
 package net.euler.p714;
 
-import java.math.BigInteger;
-import java.util.Objects;
-
 import net.euler.util.JsonUtil;
 
-public class Triplet {
+public class Triplet extends net.euler.Triplet<String, Integer, Boolean> {
 
-	/** non-duodigit num */
-	private final int num;
-	
-	/** duodigit-multiple num of <code>value1</code> */
-	private final BigInteger duoDigitMultiple;
-	
-	/** multiple */
-	private final long multiple;
-
-	public Triplet(int value1, BigInteger value2, long value3) {
-		this.num = value1;
-		this.duoDigitMultiple = value2;
-		this.multiple = value3;
+	protected Triplet(String num, int length, boolean zeroStart) {
+		super(num, length, zeroStart);
 	}
 	
-	public int getNum() {
-		return num;
+	public String getNum() {
+		return v1;
 	}
 
-	public BigInteger getDuoDigitMultiple() {
-		return duoDigitMultiple;
+	public int getLength() {
+		return v2;
 	}
 
-	public long getMultiple() {
-		return multiple;
+	public boolean isZeroStart() {
+		return v3;
 	}
 
 	@Override
@@ -39,25 +25,7 @@ public class Triplet {
 		return JsonUtil.toString(this);
 	}
 	
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((duoDigitMultiple == null) ? 0 : duoDigitMultiple.hashCode());
-		result = prime * result + num;
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (obj == null || obj.getClass() != this.getClass()) {
-			return false;
-		}
-		Triplet that = (Triplet)obj;
-		return Objects.equals(this.num, that.num) && Objects.equals(this.duoDigitMultiple, that.duoDigitMultiple);
-	}
-
-	public static Triplet of(int value1, BigInteger value2, long value3) {
-		return new Triplet(value1, value2, value3);
+	public static Triplet of(String num, int length, boolean zeroStart) {
+		return new Triplet(num, length, zeroStart);
 	}
 }
