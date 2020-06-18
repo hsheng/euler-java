@@ -17,4 +17,8 @@ public class Triplet<X, Y, Z> {
 	public String toString() {
 		return JsonUtil.toString(this);
 	}
+	
+	public static <X, Y, Z> Triplet<X, Y, Z> of (X x, Y y, Z z) {
+		return new Triplet<X, Y, Z>(x, y, z);
+	}
 }

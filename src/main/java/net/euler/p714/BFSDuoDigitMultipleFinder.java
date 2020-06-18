@@ -3,19 +3,18 @@ package net.euler.p714;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-
-import org.apache.commons.lang3.math.NumberUtils;
+import java.util.Map;
 
 public class BFSDuoDigitMultipleFinder implements IDuoDigitMultipleFinder {
 
-	private final int limit;
+	private final int maxDuoLen;
 	
 	public BFSDuoDigitMultipleFinder(int limit) {
-		this.limit = limit;
+		this.maxDuoLen = limit;
 	}
 	
 	private List<Integer> getD1Options(final int base) {
@@ -46,65 +45,56 @@ public class BFSDuoDigitMultipleFinder implements IDuoDigitMultipleFinder {
 		}
 	}
 	
-	private void addToQueue(List<Triplet> queue, Triplet t, String d1s, String d2s) {
-		queue.add(Triplet.of(d1s + t.getNum(), t.getLength() + 1, d1s.charAt(0) == '0'));
-		queue.add(Triplet.of(d2s + t.getNum(), t.getLength() + 1, d2s.charAt(0) == '0'));
-	}
-	
-	private Quintet bfsFind(final int num, final int d1, final int d2, final int limit) {
+	private Quintet bfsFind(final int num, final int p1, final int p2) {
 		long t1 = System.currentTimeMillis();
 		
-		BitSet flags = new BitSet(num + 1);
-
-		String d1s = String.valueOf(d1);
-		String d2s = String.valueOf(d2);
+		Map<Integer, BigInteger> rMap = new HashMap<>();
+		
 		final BigInteger base = BigInteger.valueOf(num);
 		
-		List<Triplet> queue = new ArrayList<>();
-		queue.add(Triplet.of(d1s, d1s.length(), d1s.charAt(0) == '0'));
+		List<String> d1Queue = new ArrayList<>();
+		List<String> d2Queue = new ArrayList<>();
+		List<String> masterQueue = new ArrayList<>();
+		masterQueue.add(String.valueOf(p1));
+		int duoLen = 1;
 		
-		d1s = String.valueOf(Math.min(d1, d2));
-		d2s = String.valueOf(Math.max(d1, d2));
+		final String d1s = String.valueOf(Math.min(p1, p2));
+		final String d2s = String.valueOf(Math.max(p1, p2));
+				
 		
-		while (!queue.isEmpty()) {
-			Triplet t = queue.remove(0);
-			if (t.getLength() > limit) {
-				continue;
-			}
-			if (t.isZeroStart()) {
-				addToQueue(queue, t, d1s, d2s);
-				continue;
-			}
+		
+		while (!masterQueue.isEmpty()) {
+			String duoStr = masterQueue.remove(0);
+			BigInteger duo = new BigInteger(duoStr);
 			
-			if (t.getLength() <= LONG_MAX_LEN) {
-				long n = NumberUtils.toLong(t.getNum());
-				if (n <= num) {
-					addToQueue(queue, t, d1s, d2s);
-				} else {
-					int r =  (int)(n % num);
-					if (r == 0) {
-						long t2 = System.currentTimeMillis();
-						return Quintet.of(num, true, BigInteger.valueOf(n), -1, (t2 - t1));
-					} else if (!flags.get(r)) {
-						flags.set(r);
-						addToQueue(queue, t, d1s, d2s);
-					}
-				}
+			if (base.compareTo(duo) >= 0 && duo.intValue() == 0) {
+				d1Queue.add(d1s + duoStr);
+				d2Queue.add(d2s + duoStr);
 			} else {
-				BigInteger n = new BigInteger(t.getNum());
-				BigInteger[] dnr = n.divideAndRemainder(base);
+				BigInteger[] dnr = duo.divideAndRemainder(base);
 				int r = dnr[1].intValue();
 				if (r == 0) {
-					long t2 = System.currentTimeMillis();
-					return Quintet.of(num, true, n, -1, (t2 - t1));
-				} else if (!flags.get(r)) {
-					addToQueue(queue, t, d1s, d2s);
+					// return
+					return Quintet.of(num, true, duo, dnr[0].longValue(), (System.currentTimeMillis() - t1));
+				} else if (!rMap.containsKey(r)) {
+					// add for next round
+					d1Queue.add(d1s + duoStr);
+					d2Queue.add(d2s + duoStr);
+					rMap.put(r, duo);
 				}
+			}
+			
+			if (masterQueue.isEmpty() && duoLen < maxDuoLen) {
+				duoLen += 1;
+				masterQueue.addAll(d1Queue);
+				masterQueue.addAll(d2Queue);
+				d1Queue.clear();
+				d2Queue.clear();
+				rMap.clear();
 			}
 		}
 
-		long t2 = System.currentTimeMillis();
-		return Quintet.of(num, false, BigInteger.ZERO, -1, (t2 - t1));
+		return Quintet.of(num, false, BigInteger.ZERO, num, (System.currentTimeMillis() - t1));
 	}
 	
 	@Override
@@ -118,7 +108,7 @@ public class BFSDuoDigitMultipleFinder implements IDuoDigitMultipleFinder {
 		List<BigInteger> candidates = new ArrayList<BigInteger>();
 		for (int d1 : getD1Options(num % 10)) {
 			for (int d2 : getD2Options(d1)) {
-				Quintet q = bfsFind(num, d1, d2, limit);
+				Quintet q = bfsFind(num, d1, d2);
 				if (q.isSolved()) {
 					candidates.add(q.getDuo());
 				}
